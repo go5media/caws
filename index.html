@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Camera Viewer Login</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 50px;
+    }
+    .hidden {
+      display: none;
+    }
+    .error {
+      color: red;
+    }
+    .logout-button {
+      margin-top: 20px;
+      background-color: #f44336;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      cursor: pointer;
+    }
+    .logout-button:hover {
+      background-color: #d32f2f;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="login-container">
+    <h1>Camera Viewer Login</h1>
+    <form id="login-form">
+      <input type="text" id="username" placeholder="Username" required><br><br>
+      <input type="password" id="password" placeholder="Password" required><br><br>
+      <button type="submit">Login</button>
+    </form>
+    <p id="error-message" class="error hidden">Invalid username or password.</p>
+  </div>
+
+  <div id="viewer-container" class="hidden">
+    <h1>Camera Viewer</h1>
+    <div id="camera-feed"></div>
+    <button class="logout-button" id="logout-button">Logout</button>
+  </div>
+
+  <script>
+    // Hashed credentials
+    const credentials = {
+      "jasper": "e6dbdaf03f293869ef5e46e5200f030ec71da104e15d13a594f0ae89e5748467", // Greencake2025
+      "casper": "50873b324c76edc179da7fd89a662fe8fd28d52f6e20f6d15a3eee09ae6f1471"  // Blueapple2025
+    };
+
+    // DOM elements
+    const loginForm = document.getElementById("login-form");
+    const loginContainer = document.getElementById("login-container");
+    const viewerContainer = document.getElementById("viewer-container");
+    const errorMessage = document.getElementById("error-message");
+    const logoutButton = document.getElementById("logout-button");
+    const cameraFeed = document.getElementById("camera-feed");
+
+    // Helper functions
+    function hash(input) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(input);
+      return crypto.subtle.digest("SHA-256", data).then((hash) => {
+        return Array.from(new Uint8Array(hash))
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("");
+      });
+    }
+
+    function setCookie(name, value, hours) {
+      const date = new Date();
+      date.setTime(date.getTime() + hours * 60 * 60 * 1000);
+      document.cookie = `${name}=${value}; expires=${date.toUTCString()}; path=/`;
+    }
+
+    function getCookie(name) {
+      const cookies = document.cookie.split("; ");
+      for (let cookie of cookies) {
+        const [key, value] = cookie.split("=");
+        if (key === name) return value;
+      }
+      return null;
+    }
+
+    function deleteCookie(name) {
+      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/`;
+    }
+
+    function showCameraFeed(username) {
+      if (username === "jasper") {
+        cameraFeed.innerHTML = '<iframe width="337" height="246" src="https://rtsp.me/embed/TQztkdZ4/" frameborder="0" allowfullscreen></iframe>';
+      } else if (username === "casper") {
+        cameraFeed.innerHTML = '<p>Right camera feed not available right now.</p>';
+      }
+    }
+
+    // Login form submission
+    loginForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const username = document.getElementById("username").value.toLowerCase();
+      const password = document.getElementById("password").value;
+      const hashedPassword = await hash(password);
+
+      if (credentials[username] && credentials[username] === hashedPassword) {
+        setCookie("cameraUser", username, 24); // Set cookie for 24 hours
+        loginContainer.classList.add("hidden");
+        viewerContainer.classList.remove("hidden");
+        showCameraFeed(username);
+      } else {
+        errorMessage.classList.remove("hidden");
+      }
+    });
+
+    // Logout button
+    logoutButton.addEventListener("click", () => {
+      deleteCookie("cameraUser");
+      viewerContainer.classList.add("hidden");
+      loginContainer.classList.remove("hidden");
+      loginForm.reset();
+      errorMessage.classList.add("hidden");
+    });
+
+    // Auto-login if cookie exists
+    const savedUser = getCookie("cameraUser");
+    if (savedUser && credentials[savedUser]) {
+      loginContainer.classList.add("hidden");
+      viewerContainer.classList.remove("hidden");
+      showCameraFeed(savedUser);
+    }
+  </script>
+
+</body>
+</html>
